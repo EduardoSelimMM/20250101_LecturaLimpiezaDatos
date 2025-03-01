@@ -9,3 +9,4 @@
 
 ## Sesiones 
 - [Sesion 1: 27 de febrero de 2025](./sesion01)
+- [Sesion 2: 1 de marzo de 2025](./sesion02)
