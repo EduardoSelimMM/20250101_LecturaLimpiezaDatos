@@ -1,0 +1,701 @@
+---
+title: "Sesion 03"
+author: "Eduardo Martínez"
+date: "2025-03-04"
+output: html_document
+---
+
+# Introducción a limpieza de datos
+
+```{r}
+#install.packages("readxl")
+library(readxl) # Para leer archivos de Excel
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(lubridate) # Sirve para manejar algunas variables de fecha
+```
+
++ Hasta ahora ya podemos consultar unos archivos xls, xlsx, csv y una base de datos muy sencilla.
+
++ Con estos métodos de data acquisition NO tenemos mucho control con respecto a los datos que recibimos: la estructura, la codificación, los nombres de las variables, los NAs, etc.
+
++ El proceso de limpieza de datos es el más tardado en un pipeline de Ciencia de Datos
+
++ Hoy revisaremos algunas funciones que nos ayudan a este proceso
+
++ Empecemos cargando de nuevo dataset del archivo "VentasNum2024.xlsx"
+
+```{r}
+datos_ventas <- readxl::read_xlsx("VentasNum2024.xlsx", sheet = "Ventas")
+```
+
++ Veamos un poco de este dataset
+
+```{r}
+datos_ventas |> head()
+```
+
++ Veamos cuáles son los nombres de las columnas de este dataset
+
+```{r}
+names(datos_ventas)
+```
+
++ Como podemos ver, los nombres de las columnas de esta tabla tienen unos mal-usos que son muy comunes.
+
++ Los nombres de las columnas tienen espacios y en R muchas cosas las mandamos llamar nombre, entonces que haya espacios complica la comunicacion
+
++ Ya nos ha pasado `nombre de columna horrible` se debería ver más o menos así `nombre_de_columna_horrible`
+
++ Tienen caracteres especiales y acentos, lo que complicar el encoding...
+
+```{r}
+library(janitor)
+```
+
++ Una función muy popular que tiene esta librería {janitor} es la función `clean_names`
+
+```{r}
+datos_ventas |> clean_names() |> head()
+```
+
++ Esta función le quita espacios en blanco, caracteres especiales y vuelve a minúsculas los nombres de las columnas.
+
+```{r}
+datos_ventas <- datos_ventas |> clean_names()
+```
+
+
+```{r}
+names(datos_ventas)
+```
+
++ Otra cosa común cuando recibimos archivos con datos que no son nuestros, es que puede haber duplicados o falsos duplicados
+
++ Para casos en los que se tiene un conjunto de archivos de datos que parecen idénticos y nos damos cuenta de esto a la mala
+
++ Cuando hacemos dplyr::bind_rows() o rbind() y fallan, ya sea porque las columnas son diferentes o porque las clases de las columnas no coinciden entre los dataframes.
+
++ Afortunadamente, hay algunas funciones para verificar esto
+
++ compare_df_cols() toma los nombres sin comillas de data.frames/tibbles, o una lista de data.frames, y devuelve un resumen de cómo se comparan.
+
++ Es decir, observa cuáles son los tipos de columnas, cuáles faltan o están presentes en las diferentes entradas, y cómo difieren los tipos de columnas.
+
+
+```{r}
+df1 <- data.frame(a = 1:2, b = c("grande", "pequeño"))
+df2 <- data.frame(a = 10:12, b = c("mediano", "pequeño", "grande"), c = 0,
+                  stringsAsFactors = TRUE)
+df3 <- df1 |> dplyr::mutate(b = as.character(b))
+```
+
+```{r}
+df1
+```
+
+```{r}
+df2
+```
+
+```{r}
+df3
+```
++ Aparantemente estos 3 dataframes tienen la misma estructura, excepto quizá que uno tiene una columna extra
+
+```{r}
+compare_df_cols(df1, df2, df3)
+```
++ Le podemos indicar que sea más preciso con las disparidades
+
+```{r}
+compare_df_cols(df1, df2, df3, return = "mismatch")
+```
+
++ Si quisiera apilarlos por renglón, en dónde podría y en donde no
+
+```{r}
+compare_df_cols(df1, df2, df3, return = "mismatch",
+                bind_method = "rbind")
+```
++ Otra función es compare_df_cols_same() devuelve TRUE o FALSE indicando si los dataframes efectivamente se pueden unir por filas con el método de unión especificado.
+
+
+```{r}
+compare_df_cols_same(df1, df3)
+```
+
+```{r}
+compare_df_cols_same(df2, df3)
+```
+
++ Esto nos dice que si pretendo apilar los df2 y df3 tengo que hacer que su columna b tenga el mismo encoding. Ya sea convertir todos a string (character) o todos a factor.
+
++ Otra función popular, es una versión más informativa del table() de R base, esto se hace con la función `tabyl()`
+
+
+```{r}
+mtcars %>%
+  tabyl(gear, cyl)
+```
+
++ Hay gente que le llama a esto una tabla de contigencia
+
++ Hay otra que le llama la distribución conjunto
+
++ Se ve un poco feito... ahorita lo arreglamos
+
++ Le podemos pedir el conteo por más de dos variables
+
+```{r}
+mtcars %>%
+  tabyl(gear, cyl, am)
+```
+
++ La variable am toma dos valores 0 o 1, 1 si el auto tiene transmisión automática
+
++ La primera tabla que vemos es la de am = 0: Por ejemplo, hay 12 renglones que tienen am = 0, gear = 3 y cyl = 8
+
++ La segunda tabla que vemos es la de am = 1: Por ejemplo, hay 6 renglones que tienen am = 1, gear = 4 y cyl = 4
+
++ Implícitamente, esto nos empieza a dar indicios si hay alguna relación entre las variables
+
++ Le podemos agregar un total por columnas
+
+```{r}
+mtcars %>%
+  tabyl(gear, cyl) %>%
+  adorn_totals("col")
+```
+
+```{r}
+mtcars %>%
+  tabyl(gear, cyl) %>%
+  adorn_totals("col") %>%
+  adorn_percentages("row")
+```
+
+```{r}
+mtcars %>%
+  tabyl(gear, cyl) %>%
+  adorn_totals("col") %>%
+  adorn_percentages("row") %>%
+  adorn_pct_formatting(digits = 2)
+```
+
+```{r}
+mtcars %>%
+  tabyl(gear, cyl) %>%
+  adorn_totals("col") %>%
+  adorn_percentages("row") %>%
+  adorn_pct_formatting(digits = 2) %>%
+  adorn_ns()
+```
+
+```{r}
+mtcars %>%
+  tabyl(gear, cyl) %>%
+  adorn_totals("col") %>%
+  adorn_percentages("row") %>%
+  adorn_pct_formatting(digits = 2) %>%
+  adorn_ns() %>%
+  adorn_title()
+```
+
++ Otra función útil, es saber si ya renglones duplicados
+
+```{r}
+get_dupes(dat = mtcars)
+```
+
++ Este dataset completo tiene sus renglones diferentes todos
+
++ Pero también podemos saber si hay idénticos restringiéndonos a algunas columnas
+
++ Por ejemplo, estamos preguntándole si hay dos rengloncitos idénticos sólo considerando los variables wt y cyl
+
+```{r}
+get_dupes(dat = mtcars, wt, cyl)
+```
+
++ Un uso común es para verificar si la columna que creemos que es un ID efectivamente lo es
+
+```{r}
+get_dupes(dat = datos_ventas, id_venta)
+```
+
++ Otra función super popular es get_one_to_one(), esta función muestra que columnas (si es que las hay)
+tienen relaciones uno a uno entre sí. Es decir, si podríamos formar una función biyectiva entre dos columnas
+
++ Voy a usar para ejemplificar esto, un dataframe que ya viene en la librería {dplyr} llamado starwars
+
+```{r}
+starwars
+```
+
+```{r}
+datos <- dplyr::starwars
+```
+
++ Voy a tomar sólo los primeros 10 renglones
+
+```{r}
+datos |> head(n = 10)
+```
+
++ Si yo quisiera saber si en estos 10 primeros renglones hay algunas variables que tienen una relación uno a uno
+
+```{r}
+datos[1:10,] %>%
+  get_one_to_one()
+```
+
+```{r}
+datos[1:10,]
+```
+
++ Veamos qué pasa en los primero 5 renglones
+
+```{r}
+datos[1:5,] %>%
+  get_one_to_one()
+```
+
+```{r}
+datos[1:5,] %>% dplyr::select(name, height, mass, skin_color)
+```
+
+```{r}
+datos[1:5,]
+```
+
+```{r}
+datos[1:5,] %>% dplyr::select(birth_year, films)
+```
+
++ Veamos qué pasa con algunos de nuestros dataset "reales"
+
+```{r}
+data_superstore <- read_csv("Sample - Superstore.csv")
+```
+
+```{r}
+head(data_superstore)
+```
+
+```{r}
+data_superstore |> get_one_to_one()
+```
+
+```{r}
+data_superstore |> dplyr::select(`Customer ID`, `Customer Name`)
+```
+
+## Manejo de NAs (primera visita)
+
+```{r}
+mi_dataframe <- data.frame(v1 = c(1, NA, 3),
+                           v2 = c(NA, NA, NA),
+                           v3 = c("a", NA, "b"))
+
+mi_dataframe
+```
+
++ Una primera solución rápida, pero probablemente incorrecta es quitar los renglones y columnas que tienen NA (esto es muy drástico)
+
+
+```{r}
+mi_dataframe |> remove_empty(c("rows", "cols"))
+```
++ Esto es muy drástico
+
+```{r}
+library(visdat)
+```
+
++ Voy a utilizar el conjunto de datos airquality, ya viene en R base
+
+```{r}
+datos <- airquality
+head(datos)
+```
+
++ Una de las funciones básicas de esta librería
+
+```{r}
+datos |> vis_dat()
+```
++ Si sólo nos queremos enfocar en los NAs
+
+```{r}
+datos |> vis_miss()
+```
++ Una librería para identificar, analizar y tratar los NAs es la librería {naniar}
+
+```{r}
+library(naniar)
+```
+
+```{r}
+datos |> gg_miss_var()
+```
++ La gráfica la podemos volver más útil... Analizamos sólo los NAs
+
+```{r}
+datos |> gg_miss_var(facet = Month)
+```
+
++ La función `add_prop_miss()` me dice la proporción de faltantes por renglón
+
+```{r}
+datos %>%
+  add_prop_miss() %>%
+  head(n = 15)
+```
+
++ Podemos hacer también un resumen de los faltantes por columna
+
+```{r}
+datos |> miss_var_summary()
+```
+
++ Veamos una representación gráfica
+
+```{r}
+datos |> ggplot(aes(x = Solar.R, y = Ozone)) + 
+  geom_miss_point()
+```
+
+
+```{r}
+datos |> ggplot(aes(x = Solar.R, y = Ozone)) + 
+  geom_miss_point() + 
+  facet_wrap(~Month)
+```
+
+```{r}
+datos |> miss_var_summary()
+```
+
+```{r}
+datos |> miss_var_table()
+```
++ ¿Habrá un comportamiento de los NAs en Ozone conforme se fue registrando? i.e. cómo son las rachas de NAs
+
+```{r}
+miss_var_run(datos,
+             Ozone)
+```
+
++ A veces cuando se tienen muchos muchos renglones, conviene más analizar estas rachas por secciones
+
+```{r}
+miss_var_span(datos,
+              Ozone,
+              span_every = 20)
+```
++ Podemos analizar estos faltantes por Mes
+
+```{r}
+datos %>%
+ group_by(Month) %>%
+ miss_var_summary() %>%
+ filter(variable == "Ozone")
+```
+
+
++ Las funciones `shadow` sirven para hacer un seguimiento de los valores faltantes.
+
+La función `as_shadow` crea un dataframe con el mismo conjunto de columnas, pero con los nombres de las columnas a los que se les añade un sufijo _NA.
+
+```{r}
+datos |> as_shadow()
+```
+
++ Pega la tabla original y la tabla sombra
+
+```{r}
+datos |> bind_shadow()
+```
+
++ Podemos analizar esta tablota
+
+```{r}
+datos |> bind_shadow() |> glimpse()
+```
+
+Podemos hacer estadística de los NAs
+
+```{r}
+datos %>% bind_shadow() %>% 
+  group_by(Ozone_NA) %>% 
+  summarise_at(.vars = "Solar.R",
+               .funs = c("mean", "sd", "var", "min", "max"),
+               na.rm = TRUE)
+```
+
+```{r}
+datos %>% bind_shadow() %>%
+  ggplot(aes(x = Temp, colour = Ozone_NA)) + 
+  geom_density()
+```
+```{r}
+datos %>% bind_shadow() %>%
+  ggplot(aes(x = Solar.R, colour = Ozone_NA)) + 
+  geom_density()
+```
+
++ Si no me decido a quitar los NAs, prefiero rellenarlos eso NAs
+
++ Voy "completar" los datos
+
+```{r}
+library(simputation)
+```
+
++ La mayoría de sus métodos se basan en completar los datos faltantes con regresión
+
++ Recordatorio: La variable Ozone es la que queremos rellenar pues tiene muchos NAs
+
+```{r}
+datos_imp_reglin <- impute_lm(datos, Ozone ~ Temp + Wind)
+```
+
++ Veamos cómo quedaron mis datos
+
+```{r}
+datos_imp_reglin |> head(n = 15)
+```
+
+```{r}
+datos_imp_reglin |> miss_var_summary()
+```
+
++ Ya "arreglé" el tema de NAs en la columna Ozone
+
+
+```{r}
+datos %>% bind_shadow() %>%
+  as.data.frame() %>% 
+  impute_lm(Ozone ~ Temp + Wind) %>%
+  ggplot(aes(x = Temp,
+             y = Ozone,
+             colour = Ozone_NA)) + 
+  geom_point()
+```
+
+```{r}
+datos %>% bind_shadow() %>%
+  as.data.frame() %>% 
+  impute_lm(Ozone ~ Temp + Wind) %>%
+  ggplot(aes(x = Wind,
+             y = Ozone,
+             colour = Ozone_NA)) + 
+  geom_point()
+```
+
+```{r}
+library(mice)
+```
+
+```{r}
+datos |> md.pattern()
+```
+
+
+```{r}
+datos_imp_reglin2 <- impute_lm(datos, Ozone ~ Solar.R + Temp + Wind)
+```
+
+```{r}
+datos_imp_reglin2 |> head()
+```
+
+```{r}
+datos_imp_reglin2 |> miss_var_summary()
+```
+
+```{r}
+datos_imp_reglin_med <- impute_median(datos_imp_reglin2, Ozone ~ Month)
+```
+
+```{r}
+datos_imp_reglin_med |> head(n = 15)
+```
+
+```{r}
+datos_imp_reglin_med |> miss_var_summary()
+```
+
+```{r}
+datos_imp_arbol <- impute_cart(datos, Ozone ~ .)
+```
+
+```{r}
+datos_imp_arbol |> head()
+```
+
+```{r}
+datos_imp_arbol |> miss_var_summary()
+```
+
+```{r}
+datos %>% bind_shadow() %>%
+  as.data.frame() %>% 
+  impute_cart(Ozone ~ .) %>%
+  ggplot(aes(x = Temp,
+             y = Ozone,
+             colour = Ozone_NA)) + 
+  geom_point()
+```
+
+```{r}
+datos %>% bind_shadow()
+```
+
+
+
+```{r}
+datos %>% bind_shadow() %>%
+  as.data.frame() %>% 
+  impute_cart(Ozone ~ .) %>%
+  ggplot(aes(x = Temp,
+             y = Ozone,
+             colour = Solar.R_NA)) + 
+  geom_point()
+```
+
+
++ Se puede utiliza un modelo como árboles de decisión para predecir qué variables y sus valores son importantes para predecir la proporción de valores faltantes
+
+
+```{r}
+library(rpart)
+library(rpart.plot)
+```
+
+```{r}
+datos %>%
+  add_prop_miss() %>%
+  rpart(prop_miss_all ~ ., data = .) %>%
+  prp(type = 4, extra = 101, prefix = "Prop. Miss = ")
+```
+
+
+
+```{r}
+mi_dataframe <- data.frame(estudiantes = c("Felipe", "Verónica", "Alina"),
+                           calificaciones = 8:10,
+                           curso = "Matemáticas")
+
+mi_dataframe
+```
+
+```{r}
+mi_dataframe |> remove_constant()
+```
+
+
+```{r}
+df_que_me_pasaron <- data.frame(X_1 = c(NA, "ID", 1:3),
+                                X_2 = c(NA, "Value", 4:6))
+
+df_que_me_pasaron
+```
+
+```{r}
+row_to_names(df_que_me_pasaron, row_number = 2)
+```
+
+```{r}
+df_que_me_pasaron <- data.frame(X_1 = c(NA, NA, NA, "ID", 1:3),
+                                X_2 = c(NA, NA, NA, "Value", 4:6))
+
+df_que_me_pasaron
+```
+
+```{r}
+row_to_names(df_que_me_pasaron, row_number = 4)
+```
+
+
+## De EXCEL y sus infiernos con las fechas
+
+Algunas veces se cargan datos desde Excel y se ve un valor como 42223 donde debería haber una fecha... ¿Qué hacemos?
+
+Primero recuperarnos del micro-infarto
+
+Luego usamos la función excel_numeric_to_date()
+
+Esta función convierte esos números (seriales) a la clase Date
+
+Tiene opciones para diferentes sistemas de codificación de fechas de Excel, preservando fracciones de una fecha como hora (en cuyo caso el valor devuelto es de clase POSIXlt) y especificando una zona horaria.
+
+```{r}
+excel_numeric_to_date(41103)
+```
+
+```{r}
+excel_numeric_to_date(41103.01) # ignora los puntos decimales
+```
+
+```{r}
+excel_numeric_to_date(41103.01, include_time = TRUE) # regresa un objeti POSIXlt
+```
+
+```{r}
+excel_numeric_to_date(41103.01, date_system = "mac pre-2011")
+```
+
+Las nuevas funciones convert_to_date() y convert_to_datetime() son más robustas ante una mezcla de tipos de entrada.
+
+Particularmente útiles cuando se leen muchas excels que deberían tener los mismos formatos de columna, pero no los tienen.
+
+```{r}
+convert_to_date(c("2020-02-29", "40000.1"))
+```
+
+```{r}
+convert_to_date(c("2020-02-29", "40000.1", "26-04-2021"))
+```
+
+
+```{r}
+convert_to_date(c("2020-02-29", "40000.1", "04-26-2021"))
+```
+
+```{r}
+convert_to_date(c("2020-02-29", "40000.1", "2021/04/26"))
+```
+
+```{r}
+mi_vector <- c("strongly agree", "agree", "neutral", "neutral", "disagree", "strongly agree", "agree", "neutral", "neutral")
+
+mi_vector
+```
+
+```{r}
+factor(mi_vector,
+       levels = c("strongly agree", "agree", "neutral", "disagree", "strongly disagree"))
+```
+
+```{r}
+mi_vector <- factor(mi_vector,
+                    levels = c("strongly agree", "agree", "neutral", "disagree", "strongly disagree"))
+```
+
+```{r}
+top_levels(mi_vector)
+```
+
+```{r}
+top_levels(mi_vector, n = 1)
+```
+
+```{r}
+top_levels(mi_vector, n = 2)
+```
+
+
+
