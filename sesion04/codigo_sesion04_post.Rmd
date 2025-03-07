@@ -1,0 +1,833 @@
+---
+title: "Sesion 04"
+output: html_document
+date: "2025-03-06"
+---
+
++ La sesión pasada revisamos algunas manera de identificar los NAs y analizar si hay alguna razón por la que son datos faltantes o si son faltantes con algún patrón...
+
+```{r}
+library(ggplot2)
+```
+
++ Voy a utilizar el conjunto de datos airquality, ya viene en R base
+
+```{r}
+datos <- airquality
+head(datos)
+```
+
++ Habíamos identificado que las variables Ozone y Solar.R tenían NAs
+
++ Si no me decido a quitar los NAs, prefiero rellenarlos eso NAs
+
++ Voy "completar" los datos
+
+```{r}
+library(naniar)
+library(simputation)
+```
+
++ La mayoría de sus métodos se basan en completar los datos faltantes utilizando regresión
+
++ Recordatorio: La variable Ozone es una de las que queremos rellenar pues tiene muchos NAs
+
++ La función `impute_lm()` rellena los datos faltantes usando regresión lineal
+
+```{r}
+datos_imp_reglin <- impute_lm(datos, Ozone ~ Temp + Wind)
+```
+
++ Veamos cómo quedaron mis datos
+
+```{r}
+datos_imp_reglin |> head(n = 15)
+```
+
++ ¿Efectivamente lo rellenamos?
+
+```{r}
+datos_imp_reglin |> miss_var_summary()
+```
+
++ Ya "arreglé" el tema de NAs en la columna Ozone
+
++ Veamos qué tal es la calidad de los rellenos
+
++ Analicemos con respecto a Temp que fue una de las ocupamos para imputar vía regresión
+
+```{r}
+datos %>% bind_shadow() %>%
+  as.data.frame() %>% 
+  impute_lm(Ozone ~ Temp + Wind) %>%
+  ggplot(aes(x = Temp,
+             y = Ozone,
+             colour = Ozone_NA)) + 
+  geom_point()
+```
+
++ Analicemos ahora con respecto a Wind que fue la otra de las ocupamos para imputar vía regresión
+
+```{r}
+datos %>% bind_shadow() %>%
+  as.data.frame() %>% 
+  impute_lm(Ozone ~ Temp + Wind) %>%
+  ggplot(aes(x = Wind,
+             y = Ozone,
+             colour = Ozone_NA)) + 
+  geom_point()
+```
++ Desde ambas perspectivas, nos hace ruido que haya algunos datos de Ozone negativos
+
+```{r}
+datos_imp_reglin |> dplyr::filter(Ozone < 0)
+```
++ En estos 3 puntos, la regresión no lo hizo tan bien.
+
++ Quitar estos 3 no sería tan grave, en vez de los 37 que la sesión pasada nos queríamos volar...
+
++ Otra alternativa es con la librería {mice}
+
+```{r}
+library(mice)
+```
+
+```{r}
+datos |> md.pattern()
+```
+
++ Dado que estamos viendo según este diagrama que los NAs de Ozone guardan cierta relación con Solar.R, pues vamos a incluirla en nuestra imputación por regresión
+
+```{r}
+# Metí explícitamente la variable Solar.R a la regresión lineal
+datos_imp_reglin2 <- impute_lm(datos, Ozone ~ Solar.R + Temp + Wind)
+```
+
+```{r}
+datos_imp_reglin2 |> head()
+```
+
+```{r}
+datos_imp_reglin2 |> miss_var_summary()
+```
+
++ Justo los reglones donde Solar.R era NA, no supo que hacer con Ozone
+
++ Vamos a rellenar estos dos que nos hicieron falta como la mediana del ozono por mes.
+
++ Esto se hace con la función impute_median
+
+```{r}
+datos_imp_reglin2 |> class()
+```
+
+
+```{r}
+datos_imp_reglin_med <- simputation::impute_median(datos_imp_reglin2,
+                                                   Ozone ~ Month)
+```
+
+```{r}
+datos_imp_reglin_med |> head(n = 15)
+```
+
+```{r}
+datos_imp_reglin_med |> miss_var_summary()
+```
+
++ Podemos no sólo ajustar un modelo de regresión lineal, también podemos ajustar un modelo de árbol (CART: Classification and Regression Tree)
+
++ Esto se hace con la función `impute_cart`
+
++ Como no me quiero comprometer con respecto a que variables se relacionan con los NAs de Ozone, entonces úsalas todas
+
+```{r}
+datos_imp_arbol <- simputation::impute_cart(datos, Ozone ~ .)
+```
+
+```{r}
+datos_imp_arbol |> head()
+```
+
+```{r}
+datos_imp_arbol |> naniar::miss_var_summary()
+```
+
++ Veamos si el árbol de regresión lo hizo "mejor" que la regresión lineal
+
+```{r}
+datos %>% bind_shadow() %>%
+  as.data.frame() %>% 
+  impute_cart(Ozone ~ .) %>%
+  ggplot(aes(x = Temp,
+             y = Ozone,
+             colour = Ozone_NA)) + 
+  geom_point()
+```
+
+```{r}
+datos %>% bind_shadow() %>%
+  as.data.frame() %>% 
+  impute_cart(Ozone ~ .) %>%
+  ggplot(aes(x = Wind,
+             y = Ozone,
+             colour = Ozone_NA)) + 
+  geom_point()
+```
++ Acuérdense que Solar.R también trae unos NAs, veamos cómo se comportan ya con el Ozone "relleno"
+
+```{r}
+datos %>% bind_shadow() %>%
+  as.data.frame() %>% 
+  impute_cart(Ozone ~ .) %>%
+  ggplot(aes(x = Temp,
+             y = Ozone,
+             colour = Solar.R_NA)) + 
+  geom_point()
+```
+
++ Al parecer todo salió bien...
+
++ Como ya vimos, se puede utilizar un modelo como árboles de decisión para predecir qué variables y sus valores son importantes para predecir la proporción de valores faltantes
+
++ Hace ratito que usamos la imputación por árbol, no le preguntamos qué variables eran importantes... vamos a analizar un poquito eso
+
+```{r}
+library(rpart) # Estas dos librerías son para árbols de decisión
+library(rpart.plot)
+```
+
+```{r}
+datos %>%
+  add_prop_miss() %>%
+  rpart(prop_miss_all ~ ., data = .) %>% # En esta línea es donde uso el modelo de árbol
+  prp(type = 4, extra = 101, prefix = "Prop. Miss = ", cex = 0.7)
+```
+
++ Pero no sólo los NAs no aportan información, hay otro tipo de dato que tampoco aportan información y vale pena andar cargándolo
+
+```{r}
+mi_dataframe <- data.frame(estudiantes = c("Felipe", "Verónica", "Alina"),
+                           calificaciones = 8:10,
+                           curso = "Matemáticas")
+
+mi_dataframe
+```
++ La columna curso no aporta información, pues todos los renglones tienen el mismo valor
+
++ Para esto se usa la función remove_constant()
+
+```{r}
+mi_dataframe |> janitor::remove_constant()
+```
++ Ahorita podría parecer una necedad porque con nuestros ojos veíamos que la columna curso siempre toma el valor de matemáticas, pero no siempre podemos ver todo el dataset con nuestros ojos...
+
++ Otra situación común es que me pasen un archivo (generalmente EXCEL) que se vea así
+
+```{r}
+df_que_me_pasaron <- data.frame(X_1 = c(NA, "ID", 1:3),
+                                X_2 = c(NA, "Value", 4:6))
+
+df_que_me_pasaron
+```
+
++ El primer renglón estorba mucho, porqué? No sólo no aporta info sino que también confunde a R... no le deja entender que quiero que la columna 1 sea ID y la columna 2 sea value
+
+```{r}
+janitor::row_to_names(df_que_me_pasaron, row_number = 2) # Le indico el rengló que tiene los nombres de las columna
+```
+
++ Otro caso común...
+
+```{r}
+df_que_me_pasaron <- data.frame(X_1 = c(NA, NA, NA, "ID", 1:3),
+                                X_2 = c(NA, NA, NA, "Value", 4:6))
+
+df_que_me_pasaron
+```
+
+```{r}
+janitor::row_to_names(df_que_me_pasaron, row_number = 4)
+```
+## Parentesis
+
+read_excel("mi_archivo.xlsx", range = "R1C2:R2C5", sheet = "costos", col_names = FALSE)
+
+### Cierro paréntesis
+
+## De EXCEL y sus infiernos con las fechas (visita 2 de muchas)
+
++ Algunas veces se cargan datos desde Excel y se ve en una celda un valor como 42223 donde debería haber una fecha... ¿Qué hacemos?
+
++ Primero recuperarnos del micro-infarto
+
++ Luego usamos la función janitor::excel_numeric_to_date()
+
++ Esta función convierte esos números (seriales) a la clase Date
+
++ Tiene opciones para diferentes sistemas de codificación de fechas de Excel, preservando fracciones de una fecha como hora (en cuyo caso el valor devuelto es de clase POSIXlt) y especificando una zona horaria.
+
+```{r}
+janitor::excel_numeric_to_date(41103)
+```
+
+```{r}
+janitor::excel_numeric_to_date(41103.01) # ignora los puntos decimales
+```
+
+```{r}
+janitor::excel_numeric_to_date(41103.01, include_time = TRUE) # regresa un objeto POSIXlt
+```
+
+```{r}
+janitor::excel_numeric_to_date(41103.01, date_system = "mac pre-2011")
+```
+
++ Las funciones convert_to_date() y convert_to_datetime() son más robustas ante una mezcla de tipos de entrada.
+
++ Particularmente útiles cuando se leen muchos excels que deberían tener los mismos formatos de columna, pero no los tienen.
+
+```{r}
+janitor::convert_to_date(c("2020-02-29", "40000.1"))
+```
+
++ Me permite mezclar formatos...
+
++ Se me hace fácil hacer lo siguiente
+
+```
+janitor::convert_to_date(c("2020-02-29", "40000.1", "26-04-2021"))
+```
+Me manda un error
+
+```
+Error in convert_to_datetime_helper.character(x, ..., character_fun = character_fun,  : 
+  Not all character strings converted to class Date.  Values not converted were: "26-04-2021"
+```
+
++ En fondo me está diciendo que no sirve para todos los formatos
+
+```
+janitor::convert_to_date(c("2020-02-29", "40000.1", "04-26-2021"))
+```
+```
+Error in convert_to_datetime_helper.character(x, ..., character_fun = character_fun,  : 
+  Not all character strings converted to class Date.  Values not converted were: "04-26-2021"
+```
+
++ Sigo insistiendo..
+
+```{r}
+janitor::convert_to_date(c("2020-02-29", "40000.1", "2021/04/26"))
+```
+
++ Uff!! Por fin lo logré...
+
+# Variables tipo factor (primera visita)
+
++ Una variable tipo factor no es más que una variable tipo string, pero que es un string que se puede ordenar con cierta lógica...
+
+```{r}
+mi_vector <- c("strongly agree", "agree", "neutral", "neutral", "disagree", "strongly agree", "agree", "neutral", "neutral")
+
+mi_vector
+```
+
++ Estos strings tienen un "orden" en algún contexto, y ese orden se conoce como "niveles del factor"
+
+```{r}
+factor(mi_vector,
+       levels = c("strongly agree", "agree", "neutral", "disagree", "strongly disagree"))
+```
+
++ No es lo que quiero que signifique..
+
++ Voy a ser más preciso...
+
+```{r}
+mi_vector <- factor(mi_vector,
+                    levels = c("strongly agree", "agree", "neutral",
+                               "disagree", "strongly disagree"))
+```
+
+```{r}
+janitor::top_levels(mi_vector)
+```
+
+```{r}
+janitor::top_levels(mi_vector, n = 1)
+```
+
+```{r}
+janitor::top_levels(mi_vector, n = 2)
+```
+
++ Vamos a estudiar un poco más cuando nos centremos en variables categóricas
+
+# Algunas otras funciones de transformación de datasets
+
+```{r}
+library(tidyr)
+library(ggplot2)
+```
+
+```{r}
+df <- data.frame(estudiante = c('Pedro', 'Pablo', 'Lorena', 'Eugenia'),
+                 mes1 =c(8, 10, 6, 5),
+                 mes2 =c(9, 4, 7, 8))
+
+df
+```
+
++ Me gustaría convertir algunas columnas en renglones.
+
++ Esto se conoce como pasar de una tabla ancha a una tabla larga
+
++ Para esto se ocupa la función pivot_longer
+
+
+```{r}
+df |> tidyr::pivot_longer(cols = c('mes1', 'mes2'), # ¿Qué columnas quiero convertir a renglones?
+                    names_to = 'periodo', # nombre de la nueva columna
+                    values_to = 'calif') # valores que asignarás
+```
++ Veamos otro ejemplo...
+
+```{r}
+datos_genes <- read.delim(
+  file = "https://davetang.org/file/TagSeqExample.tab",
+  header = TRUE)
+```
+
+```{r}
+datos_genes |> str()
+```
+
+```{r}
+datos_genes |> tidyr::pivot_longer(cols = -gene, # todas las columnas excepto gene
+                                   names_to = "muestra",
+                                   values_to = "conteo")
+```
+
++ Veamos otro ejemplo
+
+```{r}
+datos <- tidyr::billboard
+```
+
+```{r}
+datos |> head()
+```
+
++ Este dataset lo quiero convertir de ancho a largo
+
+```{r}
+datos |> tidyr::pivot_longer(
+  cols = starts_with("wk"),
+  names_to = "week",
+  values_to = "rank",
+  values_drop_na = TRUE)
+```
+
++ Me sigue estorbando la wk de la columna week. Vamos a quitarselo
+
+```{r}
+datos |> tidyr::pivot_longer(
+  cols = starts_with("wk"),
+  names_to = "week",
+  names_prefix = "wk", # Le agregué esta línea
+  values_to = "rank",
+  values_drop_na = TRUE)
+```
+
++ Voy a guardar este dataset
+
+```{r}
+datos_largos <- datos |> tidyr::pivot_longer(
+  cols = starts_with("wk"),
+  names_to = "week",
+  names_prefix = "wk",
+  values_to = "rank",
+  values_drop_na = TRUE)
+```
+
+```{r}
+library(dplyr)
+```
+
+
+```{r}
+datos_largos <- datos_largos |> dplyr::mutate(week = as.numeric(week))
+```
+
+
+```{r}
+datos_resumen <- datos_largos |> dplyr::group_by(artist, track, date.entered) |>
+  summarise(max_sem = max(week), min_ranking = min(rank), max_ranking = max(rank))
+```
+
+```{r}
+datos_resumen <- datos_resumen |> ungroup()
+```
+
+```{r}
+datos_resumen <- datos_resumen |> mutate(dia_anio = lubridate::yday(date.entered))
+```
+
+```{r}
+datos_resumen
+```
+
+
+
+```{r}
+datos_resumen |> dplyr::filter(date.entered <= "1999-12-31") |> ggplot() +
+  geom_bar(aes(x = reorder(track, -dia_anio), y = max_sem), stat = "identity") +
+  coord_flip()
+```
+
+
+```{r}
+datos_resumen |> 
+  dplyr::filter(date.entered > "1999-12-31", date.entered <= "2000-02-28") |> 
+  ggplot() +
+  geom_bar(aes(x = reorder(track, -dia_anio), y = max_sem),
+           stat = "identity", fill = "lightblue") +
+  geom_text(aes(x = track, y = max_sem, label = artist), size = 3) +
+  coord_flip() +
+  theme_light()
+```
+
+```{r}
+datos_resumen |> 
+  dplyr::filter(date.entered > "2000-10-30", date.entered <= "2000-12-31") |> 
+  ggplot() +
+  geom_bar(aes(x = reorder(track, -dia_anio), y = max_sem),
+           stat = "identity", fill = "lightblue") +
+  geom_text(aes(x = track, y = max_sem, label = artist), size = 3) +
+  coord_flip() +
+  theme_light()
+```
+
+```{r}
+datos_resumen |> 
+  dplyr::filter(date.entered >= "2000-07-01", date.entered <= "2000-08-31") |> 
+  ggplot() +
+  geom_bar(aes(x = reorder(track, -dia_anio), y = max_sem),
+           stat = "identity", fill = "lightblue") +
+  geom_text(aes(x = track, y = max_sem, label = artist), size = 3) +
+  coord_flip() +
+  theme_light()
+```
+
+```{r}
+quantile(datos_resumen$max_sem, probs = c(0.8, 0.9, 1))
+```
+
+```{r}
+datos_resumen |> dplyr::filter(max_sem >= 25) |>
+  dplyr::filter(date.entered <= "1999-12-31") |> 
+  ggplot() +
+  geom_bar(aes(x = reorder(track, -dia_anio), y = max_sem),
+           stat = "identity", fill = "lightblue") +
+  geom_text(aes(x = track, y = max_sem, label = artist), size = 3) +
+  coord_flip() +
+  theme_light()
+```
+```{r}
+datos_resumen |> dplyr::filter(max_sem >= 25) |>
+  dplyr::filter(date.entered > "1999-12-31") |> 
+  ggplot() +
+  geom_bar(aes(x = reorder(track, -dia_anio), y = max_sem),
+           stat = "identity", fill = "lightblue") +
+  geom_text(aes(x = track, y = max_sem, label = artist), size = 3) +
+  coord_flip() +
+  theme_light()
+```
+
+```{r}
+datos <- billboard::lyrics
+datos |> head()
+```
+
+```{r}
+datos |> mutate(year = as.numeric(year)) |> dplyr::filter(year >= 2010)
+```
+
+```{r}
+billboard::spotify_track_data |> mutate(year = as.numeric(year)) |> dplyr::filter(year >= 2010)
+```
+
+
+```{r}
+who
+```
+
+
+```{r}
+who %>% pivot_longer(
+  cols = new_sp_m014:newrel_f65,
+  names_to = c("diagnosis", "gender", "age"),
+  names_pattern = "new_?(.*)_(.)(.*)",
+  values_to = "count"
+)
+```
+
+```{r}
+anscombe
+```
+
+```{r}
+datos_anscombe <- anscombe %>%
+  pivot_longer(
+    everything(),
+    names_to = c(".value", "set"),
+    names_pattern = "(.)(.)"
+  )
+```
+
+```{r}
+datos_anscombe
+```
+
+```{r}
+datos_anscombe |> ggplot() +
+  geom_point(aes(x = x, y = y, color = set)) +
+  facet_wrap(~set) +
+  theme_light()
+```
+
+```{r}
+datos_anscombe |> dplyr::group_by(set) |> summarise(x_media = mean(x), y_media = mean(y))
+```
+```{r}
+datos_ventas <- data.frame(
+  producto = c("A", "A", "B", "B", "B", "C", "C"),
+  region = c("Norte", "Sur", "Norte", "Este", "Sur", "Norte", "Sur"),
+  enero = c(500, NA, 600, NA, 580, 300, 350),
+  febrero = c(450, 490, NA, 260, 700, 320, 400)
+)
+
+datos_ventas
+```
+
+
+
+```{r}
+df <- data.frame(estudiante = rep(c('Ariana', 'Daniel'), each=4),
+                 anio = rep(c(1, 1, 2, 2), times=2),
+                 semestre = rep(c('primavera', 'otonio'), times=4),
+                 calif =c(84, 60, 78, 77, 62, 99, 88, 74))
+
+df
+```
+```{r}
+df |> tidyr::pivot_wider(names_from = semestre, values_from = calif)
+```
+
+```{r}
+df <- data.frame(
+  anio = rep(2024:2025, each = 12),
+  mes = rep(month.name, times = 2))
+
+df
+```
+
+```{r}
+set.seed(06032025)
+
+df <- df |> mutate(medicion = 100*runif(n()))
+```
+
+```{r}
+df
+```
+
+```{r}
+df |> pivot_wider(names_from = "mes", values_from = "medicion")
+```
+
+
+```{r}
+fish_encounters
+```
+
+
+```{r}
+fish_encounters %>%
+  pivot_wider(names_from = station, values_from = seen)
+```
+
+```{r}
+fish_encounters %>%
+  pivot_wider(names_from = station, values_from = seen, values_fill = 0)
+```
+
+```{r}
+us_rent_income
+```
+
+
+```{r}
+us_rent_income %>%
+  pivot_wider(
+    names_from = variable,
+    values_from = c(estimate, moe))
+```
+
+
+```{r}
+df <- data.frame(estudiante = c('Berenice', 'Berenice', 'Leo', 'Leo', 'Frida', 'Frida'),
+                 anio = c(2024, 2025, 2024, 2025, 2024, 2025),
+                 puntos = c(22, 29, 18, 11, 12, 19),
+                 retardos = c(2, 3, 6, 8, 5, 2))
+
+df
+```
+
+```{r}
+df |> tidyr::unite(c('puntos', 'retardos'), col = 'puntos_y_retardos', sep='-')
+```
+
+```{r}
+df <- df |> mutate(reportes = c(2, 3, 3, 2, 1, 0))
+
+df
+```
+
+```{r}
+df |> tidyr::unite(c('puntos', 'retardos', 'reportes'), col='mounstrosa', sep='/')
+```
+
+```{r}
+url <- "https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2022/2022-01-25/details.csv"
+datos <- readr::read_csv(url)
+```
+
+```{r}
+datos |> head()
+```
+
+```{r}
+datos |> select(id, primary, boardgamecategory)
+```
+
+```{r}
+datos <- datos |> select(id, primary, boardgamecategory)
+```
+
+```{r}
+datos |> head()
+```
+
+
+```{r}
+datos |> separate_longer_delim(cols = boardgamecategory, delim = ", ")
+```
+
+```{r}
+library(stringr)
+```
+
+```{r}
+patron <- c(`[` = "", `]` = "", `"` = "", `'` = "") |> coll()
+```
+
+```{r}
+datos |> separate_longer_delim(cols = boardgamecategory, delim = ", ") |>
+  dplyr::mutate(boardgamecategory_limpio = 
+           stringr::str_replace_all(boardgamecategory, pattern = patron)
+         )
+```
+
+```{r}
+datos <- data.frame(anio = c(2024, 2024, 2025),
+                    inventario = c("vanilla,1.30", "chocolate,1.50", "fresa,1.00"))
+
+datos
+```
+
+```{r}
+datos |> separate_wider_delim(cols = inventario, delim = ",",
+                              names = c("sabor", "precio")
+  )
+```
+
+```{r}
+df <- data.frame(x1 = c("A", "B", "C", "D", "E", "F"),
+                 x2 = c(1, NA, NA, 4, NA, 7))
+
+df
+```
+
+```{r}
+df |> tidyr::drop_na(x2)
+```
+```{r}
+df |> tidyr::fill(x2)
+```
+
+
+```{r}
+df |> tidyr::fill(x2, .direction = "up")
+```
+
+
+```{r}
+df |> replace_na(replace = list(x2 = pi))
+```
+
+```{r}
+starwars |> head()
+```
+
+
+
+```{r}
+starwars |> dplyr::select(name, films)
+```
+
+```{r}
+sub_datos <- starwars |> head(n = 15)
+```
+
+
+```{r}
+sub_datos$films
+```
+
+
+
+```{r}
+sub_datos |> dplyr::select(name, films) |>
+  tidyr::unnest_longer(films)
+```
+
+```{r}
+sub_datos |> dplyr::select(name, films) |>
+  tidyr::unnest_wider(films, names_sep = "_")
+```
+
+```{r}
+sub_datos |> dplyr::select(name, films) |>
+  tidyr::hoist(films, primera = 1, segunda = 2)
+```
+
+```{r}
+sub_datos
+```
+
+```{r}
+starwars |>
+  dplyr::rowwise() |>
+  mutate(num_transportes = length(c(vehicles, starships)))
+```
+
+
+```{r}
+sub_datos |>
+  dplyr::rowwise() |>
+  mutate(transporte = list(append(vehicles, starships))) |>
+  tidyr::unnest_longer(transporte) #|> dplyr::select(name, transporte)
+```
+
