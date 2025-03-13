@@ -1,0 +1,294 @@
+---
+title: "Sesion 06 - Segunda parte"
+author: "Eduardo Martínez"
+date: "2025-03-13"
+output: html_document
+---
+
+```{r}
+#install.packages("jsonlite")
+```
+
+# Introducción a datos en formato JSON
+
+JSON (JavaScript Object Notation) es un formato de datos ligero que generalmente se utiliza para almacenar e intercambiar información entre sistemas.
+
+Es "fácil" de leer y escribir para los humanos y sencillo de analizar y generar para las computadoras.
+
+JSON se usa frecuentemente en aplicaciones web para transmitir datos entre un servidor y un cliente.
+
+## Características principales de JSON
+
+Usa parejas clave-valor (llave-valor): Los datos se almacenan en pares de clave y valor (similar a los diccionarios en Python).
+
+Ligero y legible: Es "fácil" de entender y adecuado para la transmisión de datos.
+
+Independiente del lenguaje de programación: Aunque se basa en la sintaxis de JavaScript, JSON se puede utilizar con muchos lenguajes de programación (como R, Python, Java, C#, etc.).
+
+Soporta estructuras anidadas: JSON puede representar datos complejos con arreglos y objetos.
+
+Puede llevarte al infierno: Las ventajas de flexibilidad, eventualmente se convierten en su mayor desventaja, al tener datos almacenados sin ninguna estructura
+
+Llevan a entender los elementos básicos de MongoDB (o DocumentDB) que es un framework de bases de datos NoSQL que almacena datos en documentos similares a JSON (en formato BSON).
+
+Así se puede ver un registro ("renglón") en formato JSON
+
+```
+{
+  "nombre": "Juan Pérez",
+  "edad": 30,
+  "es_estudiante": false,
+  "cursos": ["Matemáticas", "Biología", "Historia"],
+  "direccion": {
+    "calle": "Calle Principal 123",
+    "ciudad": "CDMX",
+    "codigo_postal": "10001"
+  }
+}
+```
+
+Otro registro, que está relacionado con el anterior, puede ser
+
+```
+{
+  "nombre": "Selena Gómez",
+  "edad": 19,
+  "es_estudiante": true,
+  "cursos": ["Matemáticas", "Ciencias", "Literatura", "Inglés"],
+  "direccion": {
+    "ciudad": "NYC",
+  }
+}
+```
+
++ La idea es trabajar con este formato en R
+
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(jsonlite)
+```
+
+La librería {jsonlite} tiene funciones que actúan como parsers (o generadores) de JSON, optimizadas.
+
+Su principal ventaja es que implementa un mapeo bidireccional entre los datos JSON y los tipos de datos más importantes en R.
+
+Es decir, se podrá convertir entre objetos de R y JSON sin pérdida de tipo o información, y sin necesidad de TANTA manipulación manual de datos.
+
+Esto es ideal para interactuar con APIs web o para construir pipelines donde las estructuras de datos fluyen hacia y desde R utilizando JSON.
+
+```{r}
+json <-
+'[
+  {"Nombre" : "Mario", "Edad" : 32, "Ocupacion" : "Plumber"}, 
+  {"Nombre" : "Peach", "Edad" : 21, "Ocupacion" : "Princess"},
+  {},
+  {"Nombre" : "Bowser", "Ocupacion" : "Koopa"}
+]'
+```
+
+```{r}
+df <- json |> jsonlite::fromJSON()
+
+df
+```
+
+```{r}
+df |> jsonlite::toJSON(pretty=TRUE)
+```
+
+```{r}
+json <- '[
+  [1, 2, 3, 4],
+  [5, 6, 7, 8],
+  [9, 10, 11, 12]
+]'
+```
+
+```{r}
+formato_matriz <- fromJSON(json)
+formato_matriz
+```
+```{r}
+formato_matriz |> jsonlite::toJSON(pretty=TRUE)
+```
+
+Arreglo de primitivos
+
+```
+["Amsterdam", "Rotterdam", "Utrecht", "Den Haag"]
+```
+
+fromJSON lo lleva a un vector atómico de R con el argumento `simplifyVector = TRUE`
+
+Arreglo de objetos
+
+```
+[{"name":"Erik", "age":43}, {"name":"Anna", "age":32}]
+```
+
+fromJSON lo lleva a un Dataframe de R con el argumento `simplifyDataFrame = TRUE`
+
+Arreglo de arreglos
+
+```
+[ [1, 2, 3], [4, 5, 6] ]
+```
+
+fromJSON lo lleva a una matriz de R con el argumento `simplifyMatrix = TRUE`
+
+```{r}
+json <-
+'{ 
+   "ID":["1","2","3","4","5"],
+   "Name":["Alejandra","Esteban","Susana","Julian","Karina"],
+   "Salary":["722.5","815.2","1611","2829","843.25"],
+   "StartDate":["6/17/2014","1/1/2012","11/15/2014","9/23/2013","5/21/2013"],
+   "Dept":["IT","IT","HR","Operations","Finance"]
+}'
+```
+
+```{r}
+json |> jsonlite::fromJSON()
+```
+
+```{r}
+json |> jsonlite::fromJSON() |> as.data.frame()
+```
+
+```{r}
+url <- "https://data.ny.gov/api/views/9a8c-vfzj/rows.json?accessType=DOWNLOAD"
+datos_descargados <- fromJSON(url)
+```
+
+https://data.ny.gov/Economic-Development/Retail-Food-Stores/9a8c-vfzj/about_data
+
+```{r}
+datos_descargados |> class()
+```
+
+```{r}
+datos_descargados |> head(n=2)
+```
+
+```{r}
+datos_descargados[2]
+```
+
+
+```{r}
+datos_descargados[['data']] |> str()
+```
+
+```{r}
+subcjto <- datos_descargados[['data']]
+```
+
+```{r}
+subcjto |> class()
+```
+```{r}
+subcjto |> names()
+```
+
+```{r}
+subcjto[,14] |> class()
+```
+
+
+```{r}
+subcjto |> as.data.frame()
+```
+
+```{r}
+df_negocios <- subcjto |> as.data.frame() |> dplyr::select(V1, V9:V14, V16, V19, V20)
+```
+
+```{r}
+df_negocios |> dplyr::select(V20) |> unique()
+```
+
+```{r}
+df_negocios |> dplyr::select(V9) |> unique()
+```
+
+```{r}
+df_negocios |> dplyr::select(V19) |> unique()
+```
+
+```{r}
+df_negocios |> dplyr::select(V11) |> unique()
+```
+
+```{r}
+df_negocios |> dplyr::select(V12) |> unique()
+```
+
+```{r}
+df_negocios |> dplyr::group_by(V9) |> summarise(conteo = n()) |> ungroup() |>
+  dplyr::arrange(desc(conteo))
+```
+
+```{r}
+df_negocios |> dplyr::group_by(V9, V19) |> summarise(conteo = n()) |> ungroup() |>
+  dplyr::arrange(desc(conteo))
+```
+
+```{r}
+df_negocios |> dplyr::select(V9, V19) |> dplyr::group_by(V9) |> summarise(conteo = n()) |> ungroup() |> dplyr::arrange(desc(conteo))
+```
+
+
+```{r}
+datos <- read_json("datos_prueba.json")
+```
+
+```{r}
+datos |> class()
+```
+
+```{r}
+datos |> str()
+```
+
+```{r}
+datos |> dim()
+```
+
+```{r}
+datos |> head(n = 2)
+```
+
+```{r}
+datos_df <- read_json("datos_prueba.json", simplifyVector = TRUE)
+```
+
+```{r}
+datos_df |> class()
+```
+
+```{r}
+datos_df |> str()
+```
+
+```{r}
+datos_df |> head()
+```
+
+```{r}
+datos_df |> dim()
+```
+
+```{r}
+datos_df |> dplyr::select(where(is.list))
+```
+
+```{r}
+datos_df$F_liv[1]
+```
+
+```{r}
+datos_df |> head(n=1) |> jsonlite::toJSON(pretty=TRUE)
+```
+
