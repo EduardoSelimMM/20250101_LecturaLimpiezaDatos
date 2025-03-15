@@ -1,0 +1,51 @@
+```{r}
+datos <- read_json("datos_prueba.json")
+```
+
+```{r}
+datos |> class()
+```
+
+```{r}
+datos |> str()
+```
+
+```{r}
+datos |> dim()
+```
+
+```{r}
+datos |> head(n = 2)
+```
+
+```{r}
+datos_df <- read_json("datos_prueba.json", simplifyVector = TRUE)
+```
+
+```{r}
+datos_df |> class()
+```
+
+```{r}
+datos_df |> str()
+```
+
+```{r}
+datos_df |> head()
+```
+
+```{r}
+datos_df |> dim()
+```
+
+```{r}
+datos_df |> dplyr::select(where(is.list))
+```
+
+```{r}
+datos_df$F_liv[1]
+```
+
+```{r}
+datos_df |> head(n=1) |> jsonlite::toJSON(pretty=TRUE)
+```
