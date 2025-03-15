@@ -1,0 +1,579 @@
+---
+title: "Sesion 08"
+author: "Eduardo Martínez"
+date: "2025-03-15"
+output: html_document
+---
+
++ La sesión pasada estuvimos revisando el formato JSON
+
++ Era un formato flexible y ligero, para guardar y compartir datos, sin preocuparnos mucho por la estructura.
+
++ Se escribe un archivo JSON con cierta información (la que queramos nosotros) y se comparte ese archivo para que alguien lo analice y/o guarde en algún esquema de datos (bases de datos) para su consumo.
+
++ Son archivos que se suelen escribir una única vez...
+
+```{r}
+library(jsonlite)
+```
+
++ La sesión pasada se quedo de tareita (de la segunda hora) revisar el siguiente archivo
+
+```{r}
+datos <- read_json("datos_prueba.json")
+```
+
++ Sólo de ver la descripción que me muestra el área de Enviroment de RStudio puedo ver que es un "Large list (131 elements, 7.6 MB)"
+
++ Es un objeto grande y complicado... Entonces respiremos pues procesarlo no será fácil
+
++ Veamos cuáles son los nombres de estos elemenos
+
+```{r}
+names(datos)
+```
++ ¿Cómo que nulo? Si me estás diciendo que es una lista grande.. ouch... El formato es "feito"
+
++ Veamos qué pasa
+
+```{r}
+datos |> class()
+```
+
++ Pues sí una lista, ¿cuál será el problema?
+
++ Ya nos hemos fans de la función str() (structure) porque nos da información de los objetos en general 
+
+```
+datos |> str()
+```
+
++ Pffff!! Lo ejecuté y me empezó a mandar un montón de info... de hecho hasta detuve la ejecución... Pues me dió tanta info que en realidad se convirtió en nada de info
+
++ Veamos qué dimensiones tiene este objeto
+
+```{r}
+datos |> dim()
+```
+
++ Me dice que no tiene dimensión, pues claramente esto NO es una tabla
+
++ La "ñera" veamos un mini extracto
+
+```{r}
+datos |> head(n = 2)
+```
+
++ Upssss.. Podemos ver que la info tiene nada de estructura. Hay listas dentro de listas (JSONs dentro de JSONs)
+
++ Voy a intentar leer los datos de otra manera, voy a "forzárlo" a que tenga un poquito de forma de tabla con argumento `simplifyVector = TRUE`
+
+```{r}
+datos_df <- read_json("datos_prueba.json", simplifyVector = TRUE)
+```
+
++ Veamos qué tipo de objeto es este
+
+```{r}
+datos_df |> class()
+```
++ Uff!! Ya al menos es un data frame
+
++ Veamos un poquito de su estructura
+
+```
+datos_df |> str()
+```
++ De nuevo, me regresa tanta info que es nada de info
+
++ Veamos un extracto de este objeto
+
+```{r}
+datos_df |> head()
+```
+
++ Podemos observar que algunas de las columnas están formadas por "objetos elementales" (i.e. un solo número, un solo string, un solo booleano) pero otras tiene objetos más complicados i.e. los elementos que componen una columna son dataframes, listas, o vectores!!!
+
++ Es decir, hay algunas "celdas" (haciendo analogía con una tabla de EXCEL) son objetos con más estructura en sí mismos
+
+```{r}
+datos_df |> dim()
+```
++ Sí tenemos el atributo dimensión...
+
++ Veamos que variables están compuestas por listas
+
+```{r}
+datos_df |> dplyr::select(where(is.list)) |> head()
+```
+
+Podemos ver que algunas variables están compuestas por dataframes (con contenido o nulos) y algunas otras están compuestas por vectores (con contenido o nulos)
+
++ Exploremos un poquito la primera columna, que me dice que está  formada de data frames
+
++ Veamos lo que hay en la "celda" (1,"F_liv")
+
+```{r}
+datos_df$F_liv[1]
+```
++ Veamos lo que hay en la "celda" (5,"F_liv")
+
+```{r}
+datos_df$F_liv[5]
+```
+
++ Veamos lo que hay en la "celda" (1,"E18_months_no_water")
+
+```{r}
+datos_df$E18_months_no_water[1]
+```
++ Veamos lo que hay en la "celda" (2,"E18_months_no_water")
+
+```{r}
+datos_df$E18_months_no_water[2]
+```
+```{r}
+datos_df$E18_months_no_water[2] |> class()
+```
++ Veamos lo que hay en la "celda" (2,"E_yes_group")
+
+```{r}
+datos_df$E_yes_group[2]
+```
+
++ Hay un dataframe que tiene un par de columnas que tienen listas adentros
+
++ Qué pesadilla!!!
+
++ Dado que está muy complicado entender todos los "renglones" de esta tabla vamos a intentar entender sólo el primero
+
+```{r}
+datos_df |> head(n=1) |> jsonlite::toJSON(pretty=TRUE)
+```
++ Sólo el primer renglón está super anidado
+
++ ¿Qué harían en este caso?
+
++ Mandarla con el Ingeniero de Bases de Datos a que me convierto esto en un esquema relacional, i.e. de tablas
+
++ Esto quiere decir que no es un problema para el que ustedes estén 100% capacitados... se deben dejar ayudar
+
+
+## Introducción a la limpieza de texto
+
+```{r}
+library(stringr)
+```
+
+
++ Limpieza de texto es analizar y limpiar datos en forma de string
+
+```{r}
+mi_string <- "Ejemplo de STRING, con caraceteres varios (12, 15 y 10.2)?!"
+
+mi_string
+```
++ Este string tiene letras mayúsuculas, minúsculas, signos especiales, signos acentuados...
+
++ Una operación muy sencilla es convertir todo el string a minúscula con tolower()
+
+```{r}
+(string_en_minuscula <- tolower(mi_string))
+```
++ Otra función que ya hemos visto es pegar strings... paste()
+
+```{r}
+otro_string <- "Wow, tengo más que decir!!"
+paste(mi_string, otro_string, sep = " ")
+```
++ Le puedo decir que me los pegue con otro caracter si es que quiero diferenciarlos
+
+```{r}
+paste(mi_string, otro_string, sep = "@@@@")
+```
+```{r}
+paste(mi_string, otro_string, sep = "--")
+```
++ Hay una función hermana de paste(), que es paste0()
+
+```{r}
+paste(mi_string, otro_string)
+```
+
+```{r}
+paste0(mi_string, otro_string)
+```
++ paste0 los pega uno tras otro sin un espacio de por medio
+
++ Hay string más "complicados"
+
+```{r}
+mi_string <- "Ejemplo de STRING,      con caraceteres varios (12, 15 y 10.2)?!"
+
+mi_string
+```
+
++ En este string no sólo tengo espacios entre las palabras (que es muy natural) sino tmb tengo una sucesión de espacios en blanco
+
++ Primero vamos a extraer todas las palabras de la cadena con la función str_split
+
+```{r}
+stringr::str_split(string = mi_string, pattern = " ")
+```
++ Ojo me dice que hay espacios en blanco "extra" (las entradas 4, 5, 6, 7 y 8 del resultado anterior)
+
++ Puedo evitar esto con el argumento `pattern = boundary("word")` i.e. separalo por palabras "verdaderas"
+
+```{r}
+stringr::str_split(string = mi_string, pattern = boundary("word"))
+```
++ También me quitó ?, ! (,)
+
++ También podemos contar las palabras `str_count`
+
+```{r}
+stringr::str_count(string = mi_string, pattern = " ")
+```
++ ¿Realmente tiene 14 palabras? NO.. hay que estorban
+
+```{r}
+stringr::str_count(string = mi_string, pattern = boundary("word"))
+```
++ Esto cuenta las palabras "legítimos"
+
++ Se puede separar con más "gracia"
+
+```{r}
+fruits <- c(
+  "apples and oranges and pears and bananas",
+  "pineapples and mangos and guavas"
+)
+```
+
+```{r}
+fruits |> stringr::str_split(pattern = " and ")
+```
++ En este caso me devolvió una lista con dos entradas (una por cada entrada vector original)
+
+```{r}
+fruits |> stringr::str_split(pattern = " and ", simplify = TRUE)
+```
++ Con simplify = TRUE, le digo que el output me lo de en forma de matriz
+
+```{r}
+fruits
+```
+
+
+```{r}
+fruits |> stringr::str_split(pattern = " and ", n = 3)
+```
+
+```{r}
+fruits |> stringr::str_split(pattern = " and ", n = 2)
+```
+
+```{r}
+fruits |> stringr::str_split(pattern = " and ", n = 5)
+```
++ También le puedo decir que me las devuelva en un formato fijo i.e matriz
+
+```{r}
+fruits |> stringr::str_split_fixed(pattern = " and ", n = 3)
+```
+
+```{r}
+fruits |> stringr::str_split_fixed(pattern =" and ", n = 5)
+```
++ En este caso, me regreso la columna 5 "vacía"
+
+```{r}
+fruits
+```
+Le puedo decir que sólo me de la primea palabra de cada entrada
+
+```{r}
+fruits |> stringr::str_split_i(pattern = " and ", i = 1)
+```
++ Le puedo decir que me de la 4ta palabra de cada string
+
+```{r}
+fruits |> stringr::str_split_i(pattern = " and ", i = 4)
+```
++ La segunda palabra de cada string
+
+```{r}
+fruits |> stringr::str_split_i(pattern = " and ", i = 2)
+```
+
++ Con el "-" empieza de atrás para adelante
+
+```{r}
+fruits
+```
++ Las últimas palabras de cada string
+
+```{r}
+fruits |> stringr::str_split_i(pattern = " and ", i = -1)
+```
++ Las penúltimas palabras de cada string
+
+```{r}
+fruits |> stringr::str_split_i(pattern = " and ", i = -2)
+```
++ Otra situación común cuando se trabaja con strings son las reglas odiomáticas
+
+```{r}
+infierno_de_i <- c("istanbul", "İzmar", "Istanbul", "izmar", "\u0130")
+infierno_de_i
+```
++ Tengo varias formas de la letra "i"
+
++ ¿Todas son "i" legítimas? ocuparemos la función str_detect
+
+```{r}
+stringr::str_detect(infierno_de_i, pattern = coll("i", TRUE))
+```
+
+coll: Función se utiliza para "collation" (algo así como cotejo o compaginación), que es una forma de comparar strings teniendo en cuenta reglas específicas de la configuración regional (por ejemplo, sensibilidad a mayúsculas y minúsculas, orden de caracteres, etc.).
+
+TRUE: Este argumento especifica que la búsqueda debe ser sensible a mayúsculas y minúsculas. Si fuera FALSE, la búsqueda sería insensible a mayúsculas y minúsculas.
+
+```{r}
+infierno_de_i
+```
+
+```{r}
+stringr::str_detect(infierno_de_i, coll("i", TRUE, locale = "tr"))
+```
+
+locale = "tr", especifica la configuración regional que se utilizará para la collation. La configuración regional "tr" se refiere al turco. En turco, la letra "i" tiene un comportamiento especial en cuanto a la sensibilidad a mayúsculas y minúsculas (por ejemplo, la versión en mayúscula de "i" es "İ", y la versión en minúscula de "I" es "ı").
+
+```{r}
+infierno_de_i
+```
+
+```{r}
+stringr::str_detect(infierno_de_i, fixed("i", TRUE))
+```
+
+```{r}
+stringr::str_detect(infierno_de_i, fixed("İ", TRUE))
+```
+
+Con fixed se especifica que el patrón debe tratarse como un string fijo (i.e. no como una expresión regular). Esto significa que los caracteres especiales en el patrón se interpretan literalmente, no como metacaracteres de regex.
+
+```{r}
+mi_string
+```
+
+```{r}
+str_split(mi_string, pattern = "!")
+```
+
+```{r}
+str_split(mi_string, pattern = "!")[[1]]
+```
+
+```{r}
+mi_string_en_vector <- str_split(mi_string, pattern = "!")[[1]]
+```
+
+
+```{r}
+grep(pattern = "\\?", x = mi_string_en_vector)
+```
+
+```{r}
+stringr::str_replace_all(mi_string, "e","@@")
+```
+
+```{r}
+stringr::str_extract_all(mi_string,"[0-9]+")
+```
+```{r}
+stringr::str_extract_all(mi_string,"[?]+")
+```
+
+
+```{r}
+str_extract_all(mi_string, "[a-z]+")
+```
+
+```{r}
+str_extract_all(mi_string, regex("[a-z]+", TRUE))
+```
+
+```{r}
+mi_vector <- c("123 grapes", "apples x4", "bag of flour",
+               "kiwi and lime", "Bag of sugar", "milk x2")
+```
+
+```{r}
+str_extract(mi_vector, "\\d")
+```
+
+```{r}
+str_extract_all(mi_vector, "\\d")
+```
+
+```{r}
+str_extract(mi_vector, "[a-z]+")
+```
+
+```{r}
+str_extract(mi_vector, "[a-z]{1,4}")
+```
+
+```{r}
+str_extract(mi_vector, "[a-z]{1,3}")
+```
+
+```{r}
+str_extract(mi_vector, "[a-z]{1,8}")
+```
+
+```{r}
+str_extract(mi_vector, "\\b[a-z]+\\b")
+```
+
+Es un boundary (más en específico, un word boundary); hace que el match ocurra al inicio o al final de una palabra
+
+```{r}
+str_extract(mi_vector, "\\b[a-z]+")
+```
+
+```{r}
+str_extract(mi_vector, "[a-z]+\\b")
+```
+
+```{r}
+str_extract(mi_vector, regex("[a-z]+\\b", TRUE))
+```
+
+```{r}
+str_extract(mi_vector, "([a-z]+) of ([a-z]+)")
+```
+
+```{r}
+str_extract(mi_vector, "([a-z]+) of ([a-z]+)", group = 1)
+```
+
+```{r}
+str_extract(mi_vector, "([a-z]+) of ([a-z]+)", group = 2)
+```
+
+## Una aplicación un poquito más común
+
++ Aprovecho para contarles que tmb podemos leer archivos ".txt" con la función read.delim 
+
+```{r}
+mi_texto <- read.delim("ObamaSpeech.txt", header = FALSE)
+```
+
+```{r}
+mi_texto |> str()
+```
+```{r}
+mi_texto |> head()
+```
+
+
+
+```{r}
+library(quanteda)
+library(quanteda.textplots)
+```
+```{r}
+mi_texto[1,1]
+```
+
+
+```{r}
+mi_texto[1,1] |> corpus() |> summary()
+```
+
+```{r}
+mi_texto[1,1] |> quanteda::tokens() |>
+    dfm()
+```
+
+```{r}
+mi_texto[17,1]
+```
+
+```{r}
+mi_texto[17,1] |> quanteda::tokens() |>
+    dfm()
+```
++ En análisi de texto es importante quita las palabras que no tienen significado en sí mismo: stopwords
+
+```{r}
+head(stopwords("en"), 20)
+```
+
+```{r}
+head(stopwords("ru"), 10)
+```
+
+```{r}
+head(stopwords("it"), 10)
+```
+
+```{r}
+head(stopwords("es"), 10)
+```
+
++ Voy a quitar estas palabras "sin significado"
+
+
+```{r}
+mi_texto[17,1] |> quanteda::tokens() |> 
+  tokens_remove(stopwords("en")) |>
+  dfm()
+```
+
+
+```{r}
+primera_frase <- "This is $10 in 999 different ways,\n up and down; left and right!"
+
+segunda_frase <- "@koheiw7 working: on #quanteda 2day\t4ever, http://textasdata.com?page=123."
+```
+
+
+```{r}
+texto_completo <- c(text1 = primera_frase,
+                    text2 = segunda_frase,
+                    text3 = mi_texto[17,1],
+                    text4 = mi_texto[27,1],
+                    text5 = mi_texto[37,1],
+                    text6 = mi_texto[47,1],
+                    text7 = mi_texto[57,1],
+                    text8 = billboard::lyrics[5,"lyrics"])
+```
+
+```{r}
+texto_completo |> quanteda::tokens()
+```
+
+
+```{r}
+texto_completo |> quanteda::tokens () |>
+  tokens_remove(stopwords("en")) |>
+  dfm() |> textplot_wordcloud(min_count = 2)
+```
+
+```{r}
+texto_completo |> quanteda::tokens(remove_numbers = TRUE,
+                                   remove_punct = TRUE,
+                                   remove_separators = TRUE) |>
+  dfm() |> textplot_wordcloud()
+```
+
+```{r}
+texto_completo |> quanteda::tokens(remove_numbers = TRUE,
+                                   remove_punct = TRUE,
+                                   remove_separators = TRUE) |>
+  tokens_remove(stopwords("en")) |>
+  dfm() |> textplot_wordcloud()
+```
