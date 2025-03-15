@@ -15,3 +15,4 @@
 - [Sesion 5: 8 de marzo de 2025](./sesion05)
 - [Sesion 6: 11 de marzo de 2025](./sesion06)
 - [Sesion 7: 13 de marzo de 2025](./sesion07)
+- [Sesion 8: 15 de marzo de 2025](./sesion08)
