@@ -50,7 +50,6 @@ library(RSQLite)
 
 conn <- DBI::dbConnect(RSQLite::SQLite(), "vuelos.db")
 ```
-```
 
 2. Clonar el repositorio (Colaboradores 1 y 2, Administrador)
 
