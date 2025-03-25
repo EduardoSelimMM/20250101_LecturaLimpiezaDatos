@@ -56,15 +56,14 @@ conn <- DBI::dbConnect(RSQLite::SQLite(), "vuelos.db")
 Cada colaborador debe clonar el repositorio en su máquina:
 
 ```
-git clone https://github.com/usuario/ccolaboracion-git-equipo-n.git
+git clone https://github.com/usuario/diplo-modulo2-equipo-n.git
 ```
 
 3. Colaborador 1: Desde su máquina crear chunks de código R en el archivo "proyecto_final.Rmd" (que obtuvo del Administrador) que muestre el número de tablas y sus nombres de la base de datos "vuelos"; además, crear un objeto en R, un por cada tabla de la base de datos. Hacer commit y push del código al repositorio del administrador y hacer un pull request.
 
-4. Colaborador 2: Desde su máquina crear chunks de código R en el archivo "proyecto_final.Rmd" (que obtuvo del Administrador) que 
-. Debe corregir la línea `author: "Equipo - n"` con el número correcto de equipo y agregar los nombres completos de los integrantes en la sección de `# Integrantes`. Hacer commit y push del código al repositorio del administrador y hacer un pull request.
+4. Colaborador 2: Desde su máquina crear chunks de código R en el archivo "proyecto_final.Rmd" (que obtuvo del Administrador) que use las funciones `vis_dat()` y `vis_miss()` de la librería `{visdat}` para analizar los tipos de datos y datos faltantes de cada una de las tablas generadas por el Colaborador 1. Debe corregir la línea `author: "Equipo - n"` con el número correcto de equipo y agregar los nombres completos de los integrantes en la sección de `# Integrantes`. Hacer commit y push del código al repositorio del administrador y hacer un pull request.
 
-5. Administrador del equipo. Desde su máquina crear chunks de código R en el archivo "proyecto_final.Rmd" (que obtuvo del Administrador) que XXXXXX. Hacer commit y push del código al repositorio del administrador y revisar los pull requests de los colaboradores 1 y 2.
+5. Administrador del equipo. Desde su máquina crear chunks de código R en el archivo "proyecto_final.Rmd" (que obtuvo del Administrador) que use funciones de la librería {skimr} para obtener un resumen del tipo de variables, resumen de variables numéricas y resumen de variables categóricas para cada uno de los datasets que creo el Colaborador 1. Hacer commit y push del código al repositorio del administrador y revisar los pull requests de los colaboradores 1 y 2.
 
 6. Obtener la versión actualizada del repositorio (Colaboradores 1 y 2, Administrador)
 
