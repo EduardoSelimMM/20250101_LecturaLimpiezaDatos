@@ -8,17 +8,17 @@ Se documenta mediante screenshots en un archivo de Google Doc (i.e. un archivo d
 
 Cada persona tomará uno de los siguientes roles:
 
-1. Administrador del repositorio: Creará el repositorio en GitHub, añade contenido y resuelve posibles conflictos. Primer persona del equipo ordenada alfabéticamente por apellido paterno.
+1. Administrador del repositorio: Creará el repositorio en GitHub, añade contenido y resuelve posibles conflictos. Tercer persona del equipo ordenada alfabéticamente por apellido paterno.
 
 2. Colaborador 1: Clona el repositorio, añade contenido y realiza una contribución. Segunda persona del equipo ordenada alfabéticamente por apellido paterno.
 
-3. Colaborador 2: Modifica el contenido y resuelve posibles conflictos. Tercera persona del equipo ordenada alfabéticamente por apellido paterno.
+3. Colaborador 2: Modifica el contenido y resuelve posibles conflictos. Primera persona del equipo ordenada alfabéticamente por apellido paterno.
 
 Instrucciones:
 
 1. Configuración inicial (administrador del repositorio)
 
-En GitHub, el administrador del repositorio crea un repositorio privado llamado colaboracion-git-equipo-n, donde n es el número de su equipo. Por ejemplo, si mi equipo es el 5, mi repositorio privado se llamará "colaboracion-git-equipo-5"
+En GitHub, el administrador del repositorio crea un repositorio privado llamado diplo-modulo2-equipo-n, donde n es el número de su equipo. Por ejemplo, si mi equipo es el 5, mi repositorio privado se llamará "diplo-modulo2-equipo-equipo-5"
 
 Agrega un archivo README.md con una breve descripción del proyecto.
 
@@ -26,13 +26,13 @@ Agrega a los otros dos colaboradores y al usuario EduardoSelimMM con permisos de
 
 Comparte la URL del repositorio con los colaboradores.
 
-Sube al repositorio el archivo "datos_proyecto.csv"
+Sube al repositorio el archivo "vuelos.db"
 
 Crea, desde GitHub, el archivo "proyecto_final.Rmd" con el siguiente contenido
 
 ```
 ---
-title: "Proyecto final módulo 1"
+title: "Proyecto final módulo 2"
 author: "Equipo - n"
 output: html_document
 ---
@@ -44,11 +44,11 @@ output: html_document
 + Integrante 3. Rol: Colaborador 2
 
 ```{r}
-library(dplyr)
-library(readr)
-library(ggplot2)
+library(DBI)
+library(dbplyr)
+library(RSQLite)
 
-mis_datos <- readr::read_csv("datos_proyecto.csv")
+conn <- DBI::dbConnect(RSQLite::SQLite(), "vuelos.db")
 ```
 
 2. Clonar el repositorio (Colaboradores 1 y 2, Administrador)
@@ -59,17 +59,18 @@ Cada colaborador debe clonar el repositorio en su máquina:
 git clone https://github.com/usuario/ccolaboracion-git-equipo-n.git
 ```
 
-3. Colaborador 1: Desde su máquina crear chunks de código R en el archivo "proyecto_final.Rmd" (que obtuvo del Administrador) que calculen la media de x, la media de y, la desviación estándar de x, la desviación estándar de y, la correlación de Pearson entre x y y, PARA CADA SUBCONJUNTO, usando ciclos for. Hacer commit y push del código al repositorio del administrador y hacer un pull request.
+3. Colaborador 1: Desde su máquina crear chunks de código R en el archivo "proyecto_final.Rmd" (que obtuvo del Administrador) que muestre el número de tablas y sus nombres de la base de datos "vuelos"; además, crear un objeto en R, un por cada tabla de la base de datos. Hacer commit y push del código al repositorio del administrador y hacer un pull request.
 
-4. Colaborador 2: Desde su máquina crear chunks de código R en el archivo "proyecto_final.Rmd" (que obtuvo del Administrador) que calculen la media de x, la media de y, la desviación estándar de x, la desviación estándar de y, la correlación de Pearson entre x y y, PARA CADA SUBCONJUNTO, usando verbos de la librería {dplyr}. Debe corregir la línea `author: "Equipo - n"` con el número correcto de equipo y agregar los nombres completos de los integrantes en la sección de `# Integrantes`. Hacer commit y push del código al repositorio del administrador y hacer un pull request.
+4. Colaborador 2: Desde su máquina crear chunks de código R en el archivo "proyecto_final.Rmd" (que obtuvo del Administrador) que 
+. Debe corregir la línea `author: "Equipo - n"` con el número correcto de equipo y agregar los nombres completos de los integrantes en la sección de `# Integrantes`. Hacer commit y push del código al repositorio del administrador y hacer un pull request.
 
-5. Administrador del equipo. Desde su máquina crear chunks de código R en el archivo "proyecto_final.Rmd" (que obtuvo del Administrador) que trafiquen con ggplot las parejas de valores (x,y) DE CADA SUBCONJUNTO. Hacer commit y push del código al repositorio del administrador y revisar los pull requests de los colaboradores 1 y 2.
+5. Administrador del equipo. Desde su máquina crear chunks de código R en el archivo "proyecto_final.Rmd" (que obtuvo del Administrador) que XXXXXX. Hacer commit y push del código al repositorio del administrador y revisar los pull requests de los colaboradores 1 y 2.
 
 6. Obtener la versión actualizada del repositorio (Colaboradores 1 y 2, Administrador)
 
 7. Cada colaborador debe hacer pull (jalar) el contenido actualizado del repositorio a su máquina. Los 3 archivos .Rmd de cada computadora deben ser idénticos entre sí.
    
-9. El colaborador 1 debe ejecutar el código actualizado y dar conclusiones sobre cada uno de los subconjuntos de datos
+9. El colaborador 2 debe ejecutar el código actualizado y dar conclusiones sobre cada uno de los subconjuntos de datos
 
 ## Segunda parte
 
