@@ -75,6 +75,39 @@ git clone https://github.com/usuario/diplo-modulo2-equipo-n.git
 
 En construcción...
 
+### Subsección 1: Vuelos de NYC
+
+Utilizaremos las tablas de la base de datos `vuelos.db` que incluye información de:
+
++ flights: Detalles de todos los vuelos que salieron de NYC (JFK, LGA, EWR) en 2013.
++ airlines: Códigos y nombres de aerolíneas.
++ airports: Información sobre aeropuertos, incluyendo ubicación.
++ planes: Datos sobre aeronaves, incluyendo año de fabricación.
++ weather: Datos meteorológicos por hora para los aeropuertos de NYC.
+
+Responda las siguientes preguntas de 2 formas. Una utilizando verbos de {dplyr} y la otra con sintaxis SQL:
+
+1. ¿Qué aerolínea tuvo el mayor retraso promedio en la salida en 2013?
+2. ¿Qué día de la semana tuvo más vuelos retrasados en promedio?
+3. ¿Cuál es la distribución de los retrasos en la salida para cada aeropuerto?
+4. ¿Qué proporción de vuelos se retrasaron más de 30 minutos?
+5. ¿Qué destinos tuvieron los mayores retrasos promedio en la llegada?
+6. ¿Qué aerolíneas tuvieron el mayor número de vuelos desde NYC?
+7. ¿Cómo varía el retraso de los vuelos según el fabricante de la aeronave?
+8. ¿Los aviones más antiguos tienen más retrasos?
+9. ¿Qué modelos de aviones se utilizan con mayor frecuencia en vuelos desde NYC?
+10. ¿Cuál es la distancia promedio de vuelo por aerolínea?
+11. ¿Qué aeropuerto de NYC tuvo el mayor número de retrasos en la salida?
+12. ¿Qué aeropuerto tuvo el menor tiempo promedio de taxi-out?
+13. ¿Qué porcentaje de vuelos que salen de cada aeropuerto de NYC fueron puntuales?
+14. ¿Qué aeropuertos de destino tienen el mayor retraso promedio en la llegada para vuelos desde NYC?
+15. ¿Cómo varían los retrasos en la salida según la hora del día en cada aeropuerto de NYC?
+16. ¿Cuál es la correlación entre la velocidad del viento y los retrasos en la salida?
+17. ¿Los vuelos experimentan más retrasos en días con lluvias intensas?
+18. ¿Cómo afecta la temperatura a los retrasos de los vuelos?
+19. ¿Cómo afectan los niveles de visibilidad a los retrasos en la llegada?
+20. ¿La alta humedad se relaciona de alguna manera con los tiempos de taxi-out más largos?
+
 ### Subsección 2: Calidad del café
 
 Se usará el conjunto de datos de encuesta de café
