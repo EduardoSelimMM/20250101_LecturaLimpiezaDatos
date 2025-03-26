@@ -137,3 +137,15 @@ Actividad 9: Elabore una visualización con {ggplot2} que relacione el mes de ex
 Actividad 10: Elabore una visualización con {ggplot2} que relacione el `aftertaste`, `acidity`, `body` y `species` en un mismo canvas.
 
 *Importante:* Sus visualizaciones deben tener formato suficientemente bueno para publicar en alguna revista.
+
+### Sección 3: Analizando letras de canciones
+
+Actividad 1: Haga una nube de palabras de las canciones del último disco de Ariana Grande, Beyonce, Billie Eilish, Rihanna y Lady Gaga por separado, i.e. una nube por artista.
+
+Actividad 2: Haga una nube de palabras de las canciones del último disco de Ariana Grande, Beyonce, Billie Eilish, Rihanna y Lady Gaga combinados, i.e. una única nube.
+
+Actividad 3: Haga una nube de palabras de las canciones del último disco de Drake, Justin Bieber, Eminem, Ed Sheeran y Post Malone por separado, i.e. una nube por artista.
+
+Actividad 4: Haga una nube de palabras de las canciones del último disco de Drake, Justin Bieber, Eminem, Ed Sheeran y Post Malone combinados, i.e. una única nube.
+
+Actividad 5: Haga una nube de palabras de las canciones de los últimos 3 discos de BTS combinados, i.e. una única nube.
