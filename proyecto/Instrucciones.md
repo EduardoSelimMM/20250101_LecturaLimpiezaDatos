@@ -79,7 +79,9 @@ En construcción...
 
 Se usará el conjunto de datos de encuesta de café
 
-datos <- readr::read_csv("coffee_ratings.csv")
+`datos <- readr::read_csv("coffee_ratings.csv")`
+
+Actividad 0: Realice un análisis de valores faltantes del objeto `datos`
 
 Actividad 1: Crear una columna llamada `color2` que se base en los valores de la columna `color`, que asigne el valor NA si  `color == NA`, "#00FF66" si `color == 'Green'`, "#CCEBC5" si `color == 'Bluish-green'` y "#BFFFFF" si `color == 'Blue-green'`
 
