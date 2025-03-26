@@ -73,8 +73,6 @@ git clone https://github.com/usuario/diplo-modulo2-equipo-n.git
 
 ## Segunda parte
 
-En construcción...
-
 ### Subsección 1: Vuelos de NYC
 
 Utilizaremos las tablas de la base de datos `vuelos.db` que incluye información de:
@@ -139,6 +137,8 @@ Actividad 10: Elabore una visualización con {ggplot2} que relacione el `afterta
 *Importante:* Sus visualizaciones deben tener formato suficientemente bueno para publicar en alguna revista.
 
 ### Sección 3: Analizando letras de canciones
+
+Se utilizarán los archivos contenidos en la carpeta comprimida `canciones.zip`.
 
 Actividad 1: Haga una nube de palabras de las canciones del último disco de Ariana Grande, Beyonce, Billie Eilish, Rihanna y Lady Gaga por separado, i.e. una nube por artista.
 
